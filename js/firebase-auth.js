@@ -1,117 +1,93 @@
-// ระบบ Authentication
+// ระบบ Authentication (clean implementation)
+// ระบบ Authentication (clean implementation)
 class Auth {
-        console.log('Initializing Auth system...');
+    constructor() {
         this.auth = firebase.auth();
         this.currentUser = null;
-        
-        // แสดงหน้า login และซ่อนหน้าหลัก
-        this.showLoginForm();
-        
-        // ตั้งค่า event handlers
+
+        // Setup when DOM is ready
         document.addEventListener('DOMContentLoaded', () => {
             this.showLoginForm();
-        });
-        document.getElementById('login-section').style.display = 'block';
-        
-        // ติดตามสถานะการ login
-        this.auth.onAuthStateChanged((user) => {
-            console.log('Auth state changed:', user ? 'User logged in' : 'No user');
-            this.currentUser = user;
-            
-            if (user) {
-                // ผู้ใช้ login แล้ว
-                this.showLoginSuccess('เข้าสู่ระบบสำเร็จ');
-                
-                // ซ่อนหน้า login และแสดงหน้าหลัก
-                setTimeout(() => {
-                    document.getElementById('login-section').style.display = 'none';
-                    document.getElementById('main-content').style.display = 'block';
-                    document.getElementById('current-user-email').textContent = user.email;
-                }, 1000);
-            } else {
-                // ยังไม่ได้ login แสดงหน้า login
-                document.getElementById('login-section').style.display = 'block';
-                document.getElementById('main-content').style.display = 'none';
-            }
-    // เพิ่มเมธอดแสดงหน้า login
-    showLoginForm() {
-        document.getElementById('login-section').style.display = 'block';
-        document.getElementById('main-content').style.display = 'none';
-    }
-        });
+            this.setupLoginForm();
         });
 
-        // จัดการ form login
-        this.setupLoginForm();
+        // Listen for auth state changes
+        this.auth.onAuthStateChanged((user) => {
+            console.log('Auth state changed:', user ? `User ${user.email} logged in` : 'No user');
+            this.currentUser = user;
+            if (user) {
+                this.showLoginSuccess('เข้าสู่ระบบสำเร็จ');
+                this.showMainContent(user);
+            } else {
+                this.showLoginForm();
+            }
+        });
+    }
+
+    showLoginForm() {
+        const login = document.getElementById('login-section');
+        const main = document.getElementById('main-content');
+        if (login) login.style.display = 'block';
+        if (main) main.style.display = 'none';
+    }
+
+    showMainContent(user) {
+        const login = document.getElementById('login-section');
+        const main = document.getElementById('main-content');
+        const emailSpan = document.getElementById('current-user-email');
+        if (login) login.style.display = 'none';
+        if (main) main.style.display = 'block';
+        if (emailSpan) emailSpan.textContent = user.email;
     }
 
     setupLoginForm() {
-        console.log('Setting up login form...');
         const form = document.getElementById('login-form');
-        if (form) {
-            console.log('Login form found, adding submit handler');
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                console.log('Login form submitted');
-                
-                const email = document.getElementById('login-email').value;
-                const password = document.getElementById('login-password').value;
-                
-                if (!email || !password) {
-                    this.showLoginError('กรุณากรอกอีเมลและรหัสผ่าน');
-                    return;
-                }
-                
-                // แสดง loading
-                this.setLoading(true);
-                
-                try {
-                    console.log('Attempting login for:', email);
-                    await this.login(email, password);
-                    console.log('Login successful');
-                    // รีเซ็ตฟอร์ม
-                    form.reset();
-                } catch (error) {
-                    console.error('Login error:', error);
-                    this.showLoginError(this.getErrorMessage(error));
-                } finally {
-                    this.setLoading(false);
-                }
-            });
-        } else {
-            console.error('Login form not found!');
+        if (!form) {
+            console.warn('Login form not found');
+            return;
         }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email')?.value || '';
+            const password = document.getElementById('login-password')?.value || '';
+
+            if (!email || !password) {
+                this.showLoginError('กรุณากรอกอีเมลและรหัสผ่าน');
+                return;
+            }
+
+            this.setLoading(true);
+            try {
+                await this.login(email, password);
+                // onAuthStateChanged will handle UI on success
+            } catch (err) {
+                console.error('Login failed', err);
+                this.showLoginError(this.getErrorMessage(err));
+            } finally {
+                this.setLoading(false);
+            }
+        });
     }
 
-    // ฟังก์ชัน Login
     async login(email, password) {
-        try {
-            await this.auth.signInWithEmailAndPassword(email, password);
-        } catch (error) {
-            console.error('Login error:', error);
-            throw error;
-        }
+        return this.auth.signInWithEmailAndPassword(email, password);
     }
 
-    // ฟังก์ชัน Logout
     async logout() {
         try {
             await this.auth.signOut();
             this.showLoginSuccess('ออกจากระบบสำเร็จ');
-        } catch (error) {
-            console.error('Logout error:', error);
-            this.showLoginError('ออกจากระบบไม่สำเร็จ: ' + this.getErrorMessage(error));
+            this.showLoginForm();
+        } catch (err) {
+            console.error('Logout failed', err);
+            this.showLoginError('ออกจากระบบไม่สำเร็จ: ' + this.getErrorMessage(err));
         }
     }
 
-    // Helper functions
     setLoading(isLoading) {
         const spinner = document.querySelector('.loading-spinner');
-        const submitButton = document.querySelector('#login-form button[type="submit"] span');
-        if (spinner && submitButton) {
-            spinner.style.display = isLoading ? 'block' : 'none';
-            submitButton.style.opacity = isLoading ? '0.7' : '1';
-        }
+        if (spinner) spinner.style.display = isLoading ? 'block' : 'none';
     }
 
     showLoginError(message) {
@@ -120,10 +96,9 @@ class Auth {
         if (errorDiv && errorMessage) {
             errorMessage.textContent = message;
             errorDiv.style.display = 'block';
-            // ซ่อน error หลังจาก 5 วินาที
-            setTimeout(() => {
-                errorDiv.style.display = 'none';
-            }, 5000);
+            setTimeout(() => (errorDiv.style.display = 'none'), 5000);
+        } else {
+            alert(message);
         }
     }
 
@@ -133,14 +108,12 @@ class Auth {
         if (successDiv && successMessage) {
             successMessage.textContent = message;
             successDiv.style.display = 'block';
-            // ซ่อน success message หลังจาก 3 วินาที
-            setTimeout(() => {
-                successDiv.style.display = 'none';
-            }, 3000);
+            setTimeout(() => (successDiv.style.display = 'none'), 3000);
         }
     }
 
     getErrorMessage(error) {
+        if (!error) return 'เกิดข้อผิดพลาด';
         switch (error.code) {
             case 'auth/user-not-found':
                 return 'ไม่พบบัญชีผู้ใช้นี้';
@@ -151,27 +124,11 @@ class Auth {
             case 'auth/user-disabled':
                 return 'บัญชีนี้ถูกระงับการใช้งาน';
             default:
-                return error.message;
+                return error.message || String(error);
         }
-    }
-
-    // เพิ่มผู้ใช้ใหม่ (สำหรับ Admin)
-    async register(email, password) {
-        try {
-            await this.auth.createUserWithEmailAndPassword(email, password);
-            showAlert('สร้างบัญชีผู้ใช้สำเร็จ', 'success');
-        } catch (error) {
-            showAlert('สร้างบัญชีผู้ใช้ไม่สำเร็จ: ' + error.message, 'error');
-        }
-    }
-
-    // ตรวจสอบว่า login แล้วหรือยัง
-    isLoggedIn() {
-        return this.currentUser !== null;
-    }
-
-    // ดึงข้อมูลผู้ใช้ปัจจุบัน
-    getCurrentUser() {
-        return this.currentUser;
     }
 }
+
+// Create and expose global controller so inline handlers like onclick="auth.logout()" work
+window.authController = new Auth();
+window.auth = window.authController;
