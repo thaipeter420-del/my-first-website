@@ -92,6 +92,22 @@ function showAlert(message, type) {
 
 var config = {};
 
+// Basic initializeConfig to populate `config` from local settings (keeps backward compatibility)
+function initializeConfig() {
+    try {
+        var settings = db.getSettings();
+        if (settings) {
+            // If settings stored in localStorage, use them; otherwise keep defaults
+            config = settings;
+        } else {
+            config = {};
+        }
+    } catch (e) {
+        console.warn('initializeConfig: failed to load settings, using defaults', e);
+        config = {};
+    }
+}
+
 // ... (rest of the JavaScript code from the original file)
 
 // --- APP INITIALIZATION ---
