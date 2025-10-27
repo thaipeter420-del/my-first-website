@@ -1,25 +1,35 @@
 // ระบบ Authentication
 class Auth {
     constructor() {
+        console.log('Initializing Auth system...');
         this.auth = firebase.auth();
         this.currentUser = null;
         
+        // เริ่มต้นซ่อนทุกหน้า
+        document.getElementById('main-content').style.display = 'none';
+        document.getElementById('login-section').style.display = 'block';
+        
         // ติดตามสถานะการ login
         this.auth.onAuthStateChanged((user) => {
+            console.log('Auth state changed:', user ? 'User logged in' : 'No user');
             this.currentUser = user;
+            
             if (user) {
                 // ผู้ใช้ login แล้ว
                 this.showLoginSuccess('เข้าสู่ระบบสำเร็จ');
+                
+                // ซ่อนหน้า login และแสดงหน้าหลัก
                 setTimeout(() => {
                     document.getElementById('login-section').style.display = 'none';
                     document.getElementById('main-content').style.display = 'block';
                     document.getElementById('current-user-email').textContent = user.email;
                 }, 1000);
             } else {
-                // ยังไม่ได้ login
+                // ยังไม่ได้ login แสดงหน้า login
                 document.getElementById('login-section').style.display = 'block';
                 document.getElementById('main-content').style.display = 'none';
             }
+        });
         });
 
         // จัดการ form login
@@ -27,25 +37,40 @@ class Auth {
     }
 
     setupLoginForm() {
+        console.log('Setting up login form...');
         const form = document.getElementById('login-form');
         if (form) {
+            console.log('Login form found, adding submit handler');
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                console.log('Login form submitted');
                 
                 const email = document.getElementById('login-email').value;
                 const password = document.getElementById('login-password').value;
+                
+                if (!email || !password) {
+                    this.showLoginError('กรุณากรอกอีเมลและรหัสผ่าน');
+                    return;
+                }
                 
                 // แสดง loading
                 this.setLoading(true);
                 
                 try {
+                    console.log('Attempting login for:', email);
                     await this.login(email, password);
+                    console.log('Login successful');
+                    // รีเซ็ตฟอร์ม
+                    form.reset();
                 } catch (error) {
+                    console.error('Login error:', error);
                     this.showLoginError(this.getErrorMessage(error));
                 } finally {
                     this.setLoading(false);
                 }
             });
+        } else {
+            console.error('Login form not found!');
         }
     }
 

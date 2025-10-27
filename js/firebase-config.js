@@ -10,13 +10,24 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
+console.log('Initializing Firebase with config:', { 
+    projectId: firebaseConfig.projectId,
+    authDomain: firebaseConfig.authDomain
+});
+
 firebase.initializeApp(firebaseConfig);
-// Expose commonly used Firebase instances as globals so the other non-module scripts
-// that expect `firebase`, `db`, `auth`, and `storage` to be available will work.
+
+// Expose commonly used Firebase instances as globals
+console.log('Setting up Firebase instances...');
 window.firebaseApp = firebase.app();
 window.auth = firebase.auth();
 window.db = firebase.firestore();
 window.storage = firebase.storage();
+
+// เพิ่ม listener สำหรับสถานะการ authentication
+auth.onAuthStateChanged((user) => {
+    console.log('Auth state changed:', user ? `User ${user.email} logged in` : 'No user logged in');
+});
 
 console.log('Firebase initialized:', {
     projectId: firebaseConfig.projectId,

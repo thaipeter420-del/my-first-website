@@ -1,14 +1,25 @@
 // เช็คว่ามี admin อยู่แล้วหรือไม่
 async function checkForExistingAdmin() {
     try {
+        console.log('Checking for existing admin...');
         const usersSnapshot = await firebase.firestore().collection('users').where('role', '==', 'admin').limit(1).get();
+        
         if (usersSnapshot.empty) {
+            console.log('No admin found, showing admin creation form');
             // ถ้ายังไม่มี admin ให้แสดงฟอร์มสร้าง
             document.getElementById('create-admin-section').style.display = 'block';
             document.getElementById('login-section').style.display = 'none';
+        } else {
+            console.log('Admin exists, showing login form');
+            // ถ้ามี admin แล้ว ให้แสดงฟอร์ม login
+            document.getElementById('create-admin-section').style.display = 'none';
+            document.getElementById('login-section').style.display = 'block';
         }
     } catch (error) {
         console.error('Error checking for admin:', error);
+        // ถ้าเกิด error ให้แสดงฟอร์ม login เป็นค่าเริ่มต้น
+        document.getElementById('create-admin-section').style.display = 'none';
+        document.getElementById('login-section').style.display = 'block';
     }
 }
 

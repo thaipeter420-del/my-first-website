@@ -1,0 +1,35 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // ฟังก์ชันตรวจสอบสิทธิ์
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    function isActiveUser() {
+      return isAuthenticated() && 
+        firestore.exists(/databases/(default)/documents/users/$(request.auth.uid)) &&
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.active == true;
+    }
+
+    // กฎสำหรับไฟล์ backup
+    match /backups/{fileName} {
+      allow read: if isActiveUser();
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // กฎสำหรับไฟล์เอกสารแนบ
+    match /attachments/{fileName} {
+      allow read: if isActiveUser();
+      allow write: if isActiveUser();
+    }
+  }
+}
