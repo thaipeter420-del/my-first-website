@@ -9,24 +9,53 @@ class Auth {
             this.currentUser = user;
             if (user) {
                 // ผู้ใช้ login แล้ว
-                document.getElementById('login-section').style.display = 'none';
-                document.getElementById('main-content').style.display = 'block';
-                document.getElementById('user-profile').textContent = user.email;
+                this.showLoginSuccess('เข้าสู่ระบบสำเร็จ');
+                setTimeout(() => {
+                    document.getElementById('login-section').style.display = 'none';
+                    document.getElementById('main-content').style.display = 'block';
+                    document.getElementById('current-user-email').textContent = user.email;
+                }, 1000);
             } else {
                 // ยังไม่ได้ login
                 document.getElementById('login-section').style.display = 'block';
                 document.getElementById('main-content').style.display = 'none';
             }
         });
+
+        // จัดการ form login
+        this.setupLoginForm();
+    }
+
+    setupLoginForm() {
+        const form = document.getElementById('login-form');
+        if (form) {
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                
+                // แสดง loading
+                this.setLoading(true);
+                
+                try {
+                    await this.login(email, password);
+                } catch (error) {
+                    this.showLoginError(this.getErrorMessage(error));
+                } finally {
+                    this.setLoading(false);
+                }
+            });
+        }
     }
 
     // ฟังก์ชัน Login
     async login(email, password) {
         try {
             await this.auth.signInWithEmailAndPassword(email, password);
-            showAlert('เข้าสู่ระบบสำเร็จ', 'success');
         } catch (error) {
-            showAlert('เข้าสู่ระบบไม่สำเร็จ: ' + error.message, 'error');
+            console.error('Login error:', error);
+            throw error;
         }
     }
 
@@ -34,9 +63,61 @@ class Auth {
     async logout() {
         try {
             await this.auth.signOut();
-            showAlert('ออกจากระบบสำเร็จ', 'success');
+            this.showLoginSuccess('ออกจากระบบสำเร็จ');
         } catch (error) {
-            showAlert('ออกจากระบบไม่สำเร็จ: ' + error.message, 'error');
+            console.error('Logout error:', error);
+            this.showLoginError('ออกจากระบบไม่สำเร็จ: ' + this.getErrorMessage(error));
+        }
+    }
+
+    // Helper functions
+    setLoading(isLoading) {
+        const spinner = document.querySelector('.loading-spinner');
+        const submitButton = document.querySelector('#login-form button[type="submit"] span');
+        if (spinner && submitButton) {
+            spinner.style.display = isLoading ? 'block' : 'none';
+            submitButton.style.opacity = isLoading ? '0.7' : '1';
+        }
+    }
+
+    showLoginError(message) {
+        const errorDiv = document.getElementById('login-error');
+        const errorMessage = document.getElementById('login-error-message');
+        if (errorDiv && errorMessage) {
+            errorMessage.textContent = message;
+            errorDiv.style.display = 'block';
+            // ซ่อน error หลังจาก 5 วินาที
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+    }
+
+    showLoginSuccess(message) {
+        const successDiv = document.getElementById('login-success');
+        const successMessage = document.getElementById('login-success-message');
+        if (successDiv && successMessage) {
+            successMessage.textContent = message;
+            successDiv.style.display = 'block';
+            // ซ่อน success message หลังจาก 3 วินาที
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+    }
+
+    getErrorMessage(error) {
+        switch (error.code) {
+            case 'auth/user-not-found':
+                return 'ไม่พบบัญชีผู้ใช้นี้';
+            case 'auth/wrong-password':
+                return 'รหัสผ่านไม่ถูกต้อง';
+            case 'auth/invalid-email':
+                return 'อีเมลไม่ถูกต้อง';
+            case 'auth/user-disabled':
+                return 'บัญชีนี้ถูกระงับการใช้งาน';
+            default:
+                return error.message;
         }
     }
 
