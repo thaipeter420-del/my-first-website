@@ -4,35 +4,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stock Maintenance System</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- External CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js for reports -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/auth.css">
+    
+    <!-- External JS Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- XLSX for Excel Export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Kanit', sans-serif; background-color: #f8fafc; }
-        .sidebar { width: 260px; min-height: 100vh; }
-        .page { display: none; }
-        .page.active { display: block; }
-        .sidebar-item { padding: 0.75rem 1.25rem; margin-bottom: 0.25rem; border-radius: 0.75rem; transition: all 0.2s; cursor: pointer; }
-        .sidebar-item.active { background-color: #0d9488; color: white; font-weight: 600; box-shadow: 0 4px 6px -1px rgba(13, 148, 136, 0.3), 0 2px 4px -2px rgba(13, 148, 136, 0.3); }
-        .sidebar-item:not(.active):hover { background-color: #e5e7eb; color: #1f2937; }
-        .tab-label { padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; font-weight: 500;}
-        .tab-label-active { background-color: #f1f5f9; color: #0d9488; font-weight: 600; border-bottom: 3px solid #0d9488; border-radius: 0.5rem 0.5rem 0 0; }
-        /* Modal backdrop style */
-        .modal-container { background-color: rgba(0, 0, 0, 0.5); z-index: 50; }
-        .modal-content { transition: all 0.3s ease-out; }
-    </style>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-storage-compat.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/firebase-db.js"></script>
+    <script src="js/firebase-auth.js"></script>
+    <script src="js/firebase-backup.js"></script>
 </head>
 <body>
+    <!-- Login Section -->
+    <div id="login-section" class="login-container">
+        <h2 class="text-2xl font-bold mb-4">เข้าสู่ระบบ</h2>
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700">อีเมล</label>
+                <input type="email" id="login-email" required class="mt-1 block w-full rounded-lg border-slate-300 p-2 border" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700">รหัสผ่าน</label>
+                <input type="password" id="login-password" required class="mt-1 block w-full rounded-lg border-slate-300 p-2 border" />
+            </div>
+            <button type="submit" class="w-full bg-teal-600 text-white p-2 rounded-lg hover:bg-teal-700">เข้าสู่ระบบ</button>
+        </form>
+    </div>
 
-    <div class="flex">
-        <!-- Sidebar -->
-        <div class="sidebar bg-white shadow-xl flex flex-col p-4 sticky top-0">
+    <!-- Main Content (จะแสดงหลัง login) -->
+    <div id="main-content" class="hidden">
+        <div class="flex">
+            <!-- Sidebar -->
+            <div class="sidebar bg-white shadow-xl flex flex-col p-4 sticky top-0">
             <div class="text-2xl font-bold text-teal-600 mb-8 p-3">
                 <i class="fas fa-boxes-stacked mr-2"></i> Stock MTN
             </div>
@@ -66,6 +79,18 @@
                 </div>
                 <div class="sidebar-item" data-page="settings" onclick="navigateTo('settings')">
                     <i class="fas fa-wrench w-6"></i> ตั้งค่า
+                </div>
+                <div class="sidebar-item" data-page="user-management" onclick="navigateTo('user-management')">
+                    <i class="fas fa-users w-6"></i> จัดการผู้ใช้
+                </div>
+                <div class="sidebar-item" data-page="backup-management" onclick="navigateTo('backup-management')">
+                    <i class="fas fa-database w-6"></i> สำรองและกู้คืนข้อมูล
+                </div>
+                <div id="user-profile" class="mt-auto p-4 text-sm text-slate-600">
+                    <i class="fas fa-user mr-2"></i> <span id="current-user-email"></span>
+                    <button onclick="auth.logout()" class="text-rose-600 hover:text-rose-700 ml-2">
+                        <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
+                    </button>
                 </div>
             </nav>
         </div>
@@ -389,6 +414,69 @@
                             </thead>
                             <tbody id="history-table" class="text-slate-700">
                                 <tr><td colspan="6" class="text-center p-4 text-slate-500">กำลังโหลดประวัติ...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Management Page -->
+            <div id="user-management-page" class="page">
+                <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-slate-700">จัดการผู้ใช้</h3>
+                        <button onclick="showAddUserModal()" class="bg-teal-600 text-white px-4 py-2 rounded-lg">
+                            <i class="fas fa-plus mr-2"></i>เพิ่มผู้ใช้
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="p-3 text-left">อีเมล</th>
+                                    <th class="p-3 text-left">สิทธิ์</th>
+                                    <th class="p-3 text-left">สถานะ</th>
+                                    <th class="p-3 text-left">วันที่สร้าง</th>
+                                    <th class="p-3 text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table">
+                                <!-- Users list will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backup Management Page -->
+            <div id="backup-management-page" class="page">
+                <div class="bg-white p-6 rounded-2xl shadow-lg mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-semibold text-slate-700">จัดการข้อมูลสำรอง</h3>
+                        <div>
+                            <button onclick="backupSystem.createCloudBackup()" class="bg-teal-600 text-white px-4 py-2 rounded-lg mr-2">
+                                <i class="fas fa-cloud-upload-alt mr-2"></i>สำรองข้อมูล
+                            </button>
+                            <input type="file" id="restore-file" accept=".json" style="display: none;" 
+                                onchange="backupSystem.restoreFromFile(this.files[0])" />
+                            <button onclick="document.getElementById('restore-file').click()" 
+                                class="bg-amber-500 text-white px-4 py-2 rounded-lg">
+                                <i class="fas fa-cloud-download-alt mr-2"></i>กู้คืนข้อมูล
+                            </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full">
+                            <thead class="bg-slate-50">
+                                <tr>
+                                    <th class="p-3 text-left">วันที่</th>
+                                    <th class="p-3 text-left">ผู้สร้าง</th>
+                                    <th class="p-3 text-left">ขนาด</th>
+                                    <th class="p-3 text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="backups-table">
+                                <!-- Backups list will be populated here -->
                             </tbody>
                         </table>
                     </div>
@@ -908,14 +996,10 @@
 
     <!-- ------------------ MODALS END ------------------ -->
 
-    <!-- JavaScript Logic -->
-    <script>
-// --- GLOBAL STATE ---
-var itemsToReceive = [];
-var itemsToAdd = [];
-var currentMasterDataType = null; // 'machineTypes', 'productionLines', etc.
-var topPartsChart = null;
-var monthlyWithdrawalChart = null; // NEW: For the monthly report chart
+    <!-- JavaScript -->
+    <script src="js/main.js"></script>
+</body>
+</html>
 
 // START: GLOBAL STATE FOR INVENTORY MODAL FILTERING
 var currentModalPartsInGroup = [];
