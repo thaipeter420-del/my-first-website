@@ -1,12 +1,16 @@
 // ระบบ Authentication
 class Auth {
-    constructor() {
         console.log('Initializing Auth system...');
         this.auth = firebase.auth();
         this.currentUser = null;
         
-        // เริ่มต้นซ่อนทุกหน้า
-        document.getElementById('main-content').style.display = 'none';
+        // แสดงหน้า login และซ่อนหน้าหลัก
+        this.showLoginForm();
+        
+        // ตั้งค่า event handlers
+        document.addEventListener('DOMContentLoaded', () => {
+            this.showLoginForm();
+        });
         document.getElementById('login-section').style.display = 'block';
         
         // ติดตามสถานะการ login
@@ -29,6 +33,11 @@ class Auth {
                 document.getElementById('login-section').style.display = 'block';
                 document.getElementById('main-content').style.display = 'none';
             }
+    // เพิ่มเมธอดแสดงหน้า login
+    showLoginForm() {
+        document.getElementById('login-section').style.display = 'block';
+        document.getElementById('main-content').style.display = 'none';
+    }
         });
         });
 
